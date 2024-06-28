@@ -5,24 +5,29 @@
   )
 (set! *warn-on-reflection* true)
 
-;; `lein protoc && lein javac` generate the necessary
-;; classes from protos. We just need to override 
-;; the public methods in the following generated class:
+;; Assuming that protos have been compiled,
+;; we just need a type which overrides the public
+;; method(s) in the following (generated) class:
 ;; com.foo.grpc.services.GreeterGrpc$GreeterImplBase
+
+;; generate the (proxy) class which will extend `GreeterImplBase`
+;; all the info required can be found in the proto itself, except
+;; :metadata - these have to be agreed upon with potential client(s).
 (service/impl
  "Greeter" 
  :java-package "com.foo.services"
  :java-outer-classname "greeting"
  :metadata [:user-id]) ;; service expects/requires these keys
 
+;; define the handler
 (defn greet!
   [{:keys [name] :as req}]
   (println "Request metadata:" (meta req))
-  ;; takes request map, and produces a response map
-  ;; whose keys must map to fields in HelloReply
+  ;; takes a request-map conforming to `HelloRequest`,
+  ;; and MUST produce a response-map conforming to `HelloReply`
   {:message (str "Hi " name)})
 
-;; com.foo.grpc.services.GreeterGrpc$GreeterImplBase::SayHello
+;; override GreeterImplBase::SayHello
 (service/defgrpc
   SayHello                      ;; fn-name/method we're overriding
   [HelloRequest HelloReply]     ;; request/response types
